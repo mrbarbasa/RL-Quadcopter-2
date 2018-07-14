@@ -55,7 +55,7 @@ class Task():
 
             # End the episode if the agent has reached the target
             if not done:
-                target_reached = np.array_equal(self.sim.pose[:3], self.target_pos)
+                target_reached = self.sim.pose[2] >= self.target_pos[2]
                 done = target_reached
 
             reward += self.get_reward(target_reached)
