@@ -36,7 +36,7 @@ class Task():
 
         # Terminal state rewards
         if target_reached:
-            print('Target reached!', self.sim.pose[2])
+            # print('Target reached!', self.sim.pose[2])
             reward += 1.
 
         return reward
