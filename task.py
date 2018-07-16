@@ -2,7 +2,11 @@ import numpy as np
 from physics_sim import PhysicsSim
 
 class Task():
-    """Task (environment) that defines the goal and provides feedback to the agent."""
+    """Task (environment) that defines the goal and provides feedback to the agent.
+
+       This is the takeoff and reach a target pose task.
+       Only the reward and step functions have changed.
+    """
     def __init__(self, init_pose=None, init_velocities=None, 
         init_angle_velocities=None, runtime=5., target_pos=None):
         """Initialize a Task object.
