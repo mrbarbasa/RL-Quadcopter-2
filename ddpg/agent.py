@@ -47,7 +47,16 @@ class DDPG():
         self.gamma = 0.99  # discount factor
         self.tau = 0.01  # for soft update of target parameters
 
+        # Score tracker and learning parameters
+        self.best_score = -np.inf
+        self.score = -np.inf
+        self.total_reward = 0.0
+        self.count = 0
+
     def reset_episode(self):
+        self.total_reward = 0.0
+        self.count = 0
+
         self.noise.reset()
         state = self.task.reset()
         self.last_state = state
@@ -60,7 +69,9 @@ class DDPG():
         return list(action + self.noise.sample())  # add some noise for exploration
 
     def step(self, action, reward, next_state, done):
-         # Save experience / reward
+        # Save experience / reward
+        self.total_reward += reward
+        self.count += 1
         self.memory.add(self.last_state, action, reward, next_state, done)
 
         # Learn, if enough samples are available in memory
@@ -72,7 +83,23 @@ class DDPG():
         self.last_state = next_state
 
     def learn(self, experiences):
-        """Update policy and value parameters using given batch of experience tuples."""
+        """Update policy and value parameters using the given batch of experience tuples.
+
+        We will need two copies of each model - one local and one target. 
+        This is an extension of the "Fixed Q Targets" technique from Deep Q-Learning, 
+        and is used to decouple the parameters being updated (local model) from the ones
+        that are producing target values (target model).
+
+        Notice that after training over a batch of experiences, we could just copy our
+        newly learned weights from the local model to the target model. However,
+        individual batches can introduce a lot of variance into the process, so it's
+        better to perform a soft update, controlled by the parameter tau.
+        """
+        # Keep track of the current score and best score
+        self.score = self.total_reward / float(self.count) if self.count else 0.0
+        if self.score > self.best_score:
+            self.best_score = self.score
+
         # Convert experience tuples to separate arrays for each element (states, actions, rewards, etc.)
         states = np.vstack([e.state for e in experiences if e is not None])
         actions = np.array([e.action for e in experiences if e is not None]).astype(np.float32).reshape(-1, self.action_size)
@@ -91,11 +118,11 @@ class DDPG():
 
         # Train actor model (local)
         action_gradients = np.reshape(self.critic_local.get_action_gradients([states, actions, 0]), (-1, self.action_size))
-        self.actor_local.train_fn([states, action_gradients, 1])  # custom training function
+        self.actor_local.train_fn([states, action_gradients, 1]) # custom training function
 
         # Soft-update target models
         self.soft_update(self.critic_local.model, self.critic_target.model)
-        self.soft_update(self.actor_local.model, self.actor_target.model)   
+        self.soft_update(self.actor_local.model, self.actor_target.model)
 
     def soft_update(self, local_model, target_model):
         """Soft update model parameters."""
@@ -104,5 +131,6 @@ class DDPG():
 
         assert len(local_weights) == len(target_weights), "Local and target model parameters must have the same size"
 
+        # We're currently only incorporating 1% of the local weights into the target weights
         new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
         target_model.set_weights(new_weights)
