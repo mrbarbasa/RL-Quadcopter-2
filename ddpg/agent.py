@@ -66,7 +66,12 @@ class DDPG():
         """Returns actions for given state(s) as per current policy."""
         state = np.reshape(state, [-1, self.state_size])
         action = self.actor_local.model.predict(state)[0]
-        return list(action + self.noise.sample())  # add some noise for exploration
+        action = list(action + self.noise.sample()) # add some noise for exploration
+        
+        # Set the rotors to the same speed
+        rotor_speed_mean = np.mean(action)
+        action = [rotor_speed_mean for _ in action]
+        return action # rotor speeds
 
     def step(self, action, reward, next_state, done):
         # Save experience / reward
