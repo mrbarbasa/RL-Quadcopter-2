@@ -26,24 +26,47 @@ class Task():
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
 
-    def get_reward(self):
-        """Uses current pose of sim to return reward."""
-        reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()
+    def get_reward(self, target_reached):
+        """Uses current z-axis velocity of sim to return reward."""
+
+        v = self.sim.v[2]
+        v_limit = 50
+        v_norm = np.clip(v, -v_limit, v_limit) / v_limit # [-1, 1]
+        reward = v_norm
+
+        # Terminal state rewards
+        if target_reached:
+            # print('Target reached!', self.sim.pose[2])
+            reward += 1.
+
         return reward
 
-    def step(self, rotor_speeds):
+    # Currently: action=rotor_speeds
+    def step(self, action):
         """Uses action to obtain next state, reward, done."""
         reward = 0
+        target_reached = False
         pose_all = []
         for _ in range(self.action_repeat):
-            done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
-            reward += self.get_reward() 
+            # By default, the episode is considered done if the time limit has 
+            # been exceeded, or the quadcopter has travelled outside of the bounds 
+            # of the simulation.
+            done = self.sim.next_timestep(action) # update the sim pose and velocities
+
+            # End the episode if the agent has reached the target
+            if not done:
+                target_reached = self.sim.pose[2] >= self.target_pos[2]
+                done = target_reached
+
+            reward += self.get_reward(target_reached)
             pose_all.append(self.sim.pose)
-        next_state = np.concatenate(pose_all)
+        next_state = np.concatenate(pose_all) # Returns np.array of length 18
         return next_state, reward, done
 
     def reset(self):
         """Reset the sim to start a new episode."""
         self.sim.reset()
-        state = np.concatenate([self.sim.pose] * self.action_repeat) 
+        # Need to convert to a list or else the following is thrown:
+        # `ValueError: zero-dimensional arrays cannot be concatenated`
+        state = np.concatenate([self.sim.pose] * self.action_repeat)
         return state
