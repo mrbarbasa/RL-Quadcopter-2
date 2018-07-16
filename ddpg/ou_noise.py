@@ -33,7 +33,12 @@ class OUNoise:
         self.state = copy.copy(self.mu)
 
     def sample(self):
-        """Update internal state and return it as a noise sample."""
+        """Update internal state and return it as a noise sample.
+
+           theta means how fast the variable reverts towards the mean
+           mu represents the equilibrium or mean value
+           sigma is the degree of volatility of the process
+        """
         x = self.state
         dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
         self.state = x + dx
