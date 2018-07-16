@@ -1,5 +1,7 @@
 from keras import layers, models, optimizers
 from keras import backend as K
+from keras import regularizers
+from keras.layers.normalization import BatchNormalization
 
 class Actor:
     """Actor (Policy) Model. Maps states to actions."""
@@ -35,11 +37,15 @@ class Actor:
         net = layers.Dense(units=32, activation='relu')(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
+        # net = BatchNormalization()(net) # Did not seem to help the agent learn better
 
         # Add final output layer with sigmoid activation
         # These raw actions are in a [0.0, 1.0] range
         raw_actions = layers.Dense(units=self.action_size, activation='sigmoid',
             name='raw_actions')(net)
+            # Did not seem to help the agent learn better:
+            # name='raw_actions', kernel_regularizer=regularizers.l2(0.001))(net)
+            # name='raw_actions', kernel_regularizer=regularizers.l2(0.01))(net)
 
         # Scale [0, 1] output for each action dimension to a proper range.
         # This produces a deterministic action for any given state vector.

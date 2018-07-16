@@ -1,5 +1,7 @@
 from keras import layers, models, optimizers
 from keras import backend as K
+from keras import regularizers
+from keras.layers.normalization import BatchNormalization
 
 class Critic:
     """Critic (Value) Model. Maps (state, action) pairs to their Q-values."""
@@ -27,13 +29,15 @@ class Critic:
 
         # Add hidden layer(s) for state pathway
         net_states = layers.Dense(units=32, activation='relu')(states)
-        net_states = layers.Dense(units=64, activation='relu')(net_states)
+        net_states = layers.Dense(units=64, activation='relu')(net_states) 
 
         # Add hidden layer(s) for action pathway
         net_actions = layers.Dense(units=32, activation='relu')(actions)
         net_actions = layers.Dense(units=64, activation='relu')(net_actions)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
+        # net_states = BatchNormalization()(net_states) # Did not seem to help the agent learn better
+        # net_actions = BatchNormalization()(net_actions) # Did not seem to help the agent learn better
 
         # Combine state and action pathways
         net = layers.Add()([net_states, net_actions])
@@ -44,7 +48,10 @@ class Critic:
         # Add final output layer to produce action values (Q values)
         # for any given (state, action) pair
         Q_values = layers.Dense(units=1, name='q_values')(net)
-
+        # Did not seem to help the agent learn better:
+        # Q_values = layers.Dense(units=1, name='q_values', kernel_regularizer=regularizers.l2(0.001))(net)
+        # Q_values = layers.Dense(units=1, name='q_values', kernel_regularizer=regularizers.l2(0.01))(net)
+        
         # Create Keras model
         self.model = models.Model(inputs=[states, actions], outputs=Q_values)
 
